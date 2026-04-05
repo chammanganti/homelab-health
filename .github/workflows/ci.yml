@@ -26,7 +26,7 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/head/master'
+    if: github.ref == 'refs/heads/master'
     permissions:
       contents: read
       packages: write
@@ -54,7 +54,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=sha,format=short
             type=raw,value=latest
