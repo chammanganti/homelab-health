@@ -3,6 +3,7 @@ package checker
 import (
 	"context"
 	"log/slog"
+	"maps"
 	"sync"
 	"time"
 
@@ -97,10 +98,5 @@ func (c *Checker) check(target config.Target) {
 func (c *Checker) Results() map[string]ServiceHealth {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-
-	copy := make(map[string]ServiceHealth, len(c.results))
-	for k, v := range c.results {
-		copy[k] = v
-	}
-	return copy
+	return maps.Clone(c.results)
 }
