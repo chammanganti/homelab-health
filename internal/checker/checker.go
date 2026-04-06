@@ -74,7 +74,7 @@ func (c *Checker) check(target config.Target) {
 		slog.Error("failed to get deployment", "name", target.Name, "err", err)
 		c.mu.Lock()
 		c.results[target.Name] = ServiceHealth{
-			Name:      target.Name,
+			Name:      target.Deployment,
 			Ready:     false,
 			CheckedAt: time.Now(),
 		}
