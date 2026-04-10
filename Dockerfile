@@ -1,7 +1,7 @@
 FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
-ARG TARGETARCH=arm64
+ARG TARGETARCH
 
 COPY go.mod go.sum ./
 RUN go mod download
