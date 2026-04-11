@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/chammanganti/homelab-health/internal/checker"
+	"github.com/getsentry/sentry-go"
 )
 
 type HealthCheck interface {
@@ -15,7 +16,12 @@ type HealthCheck interface {
 
 func Health(hc HealthCheck) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		span := sentry.StartSpan(r.Context(), "handler.health")
+		defer span.Finish()
+
+		checkSpan := sentry.StartSpan(r.Context(), "checker.results")
 		results := hc.Results()
+		checkSpan.Finish()
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", os.Getenv("CORS_ORIGIN"))

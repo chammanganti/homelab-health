@@ -38,7 +38,9 @@ func main() {
 	}
 
 	if err := sentry.Init(sentry.ClientOptions{
-		Dsn: os.Getenv("SENTRY_DSN"),
+		Dsn:              os.Getenv("SENTRY_DSN"),
+		TracesSampleRate: 1.0,
+		EnableTracing:    true,
 	}); err != nil {
 		slog.Error("sentry initialization failed", "err", err)
 	}
