@@ -12,6 +12,8 @@ import (
 	"github.com/chammanganti/homelab-health/internal/checker"
 	"github.com/chammanganti/homelab-health/internal/config"
 	"github.com/chammanganti/homelab-health/internal/handler"
+	"github.com/getsentry/sentry-go"
+	sentryhttp "github.com/getsentry/sentry-go/http"
 )
 
 func main() {
@@ -35,6 +37,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := sentry.Init(sentry.ClientOptions{
+		Dsn: os.Getenv("SENTRY_DSN"),
+	}); err != nil {
+		slog.Error("sentry initialization failed", "err", err)
+	}
+
+	sentryHandler := sentryhttp.New(sentryhttp.Options{})
+
 	checker, err := checker.New(cfg.Targets)
 	if err != nil {
 		slog.Error("failed to create checker", "err", err)
@@ -47,8 +57,8 @@ func main() {
 	go checker.Start(ctx, cfg.Interval)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", handler.Health(checker))
-	mux.HandleFunc("GET /ready", handler.Ready)
+	mux.HandleFunc("GET /health", sentryHandler.HandleFunc(handler.Health(checker)))
+	mux.HandleFunc("GET /ready", sentryHandler.HandleFunc(handler.Ready))
 
 	srv := &http.Server{
 		Addr:    addr,
