@@ -11,11 +11,19 @@ import (
 )
 
 type mockChecker struct {
-	results map[string]checker.ServiceHealth
+	results   map[string]checker.ServiceHealth
+	subscribe chan map[string]checker.ServiceHealth
 }
 
 func (m *mockChecker) Results() map[string]checker.ServiceHealth {
 	return m.results
+}
+
+func (m *mockChecker) Subscribe() chan map[string]checker.ServiceHealth {
+	return m.subscribe
+}
+
+func (m *mockChecker) Unsubscribe(ch chan map[string]checker.ServiceHealth) {
 }
 
 func TestHealth(t *testing.T) {

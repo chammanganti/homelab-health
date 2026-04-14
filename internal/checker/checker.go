@@ -20,10 +20,12 @@ type ServiceHealth struct {
 }
 
 type Checker struct {
-	client  kubernetes.Interface
-	targets []config.Target
-	results map[string]ServiceHealth
-	mu      sync.RWMutex
+	client      kubernetes.Interface
+	targets     []config.Target
+	results     map[string]ServiceHealth
+	mu          sync.RWMutex
+	subscribers map[chan map[string]ServiceHealth]struct{}
+	subMu       sync.Mutex
 }
 
 func New(targets []config.Target) (*Checker, error) {
@@ -38,9 +40,10 @@ func New(targets []config.Target) (*Checker, error) {
 	}
 
 	return &Checker{
-		client:  clientset,
-		targets: targets,
-		results: make(map[string]ServiceHealth),
+		client:      clientset,
+		targets:     targets,
+		results:     make(map[string]ServiceHealth),
+		subscribers: make(map[chan map[string]ServiceHealth]struct{}),
 	}, nil
 }
 
@@ -80,18 +83,21 @@ func (c *Checker) check(target config.Target) {
 			CheckedAt: time.Now(),
 		}
 		c.mu.Unlock()
+		c.notify()
 		return
 	}
-
-	c.mu.Lock()
-	defer c.mu.Unlock()
 
 	health := ServiceHealth{
 		Name:      deployment.Name,
 		Ready:     deployment.Status.AvailableReplicas == *deployment.Spec.Replicas,
 		CheckedAt: time.Now(),
 	}
+
+	c.mu.Lock()
 	c.results[target.Name] = health
+	c.mu.Unlock()
+
+	c.notify()
 	slog.Info("checked deployment", "name", health.Name, "ready", health.Ready)
 }
 
@@ -99,4 +105,31 @@ func (c *Checker) Results() map[string]ServiceHealth {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return maps.Clone(c.results)
+}
+
+func (c *Checker) Subscribe() chan map[string]ServiceHealth {
+	ch := make(chan map[string]ServiceHealth, 1)
+	c.subMu.Lock()
+	c.subscribers[ch] = struct{}{}
+	c.subMu.Unlock()
+	return ch
+}
+
+func (c *Checker) Unsubscribe(ch chan map[string]ServiceHealth) {
+	c.subMu.Lock()
+	delete(c.subscribers, ch)
+	close(ch)
+	c.subMu.Unlock()
+}
+
+func (c *Checker) notify() {
+	snapshot := c.Results()
+	c.subMu.Lock()
+	defer c.subMu.Unlock()
+	for ch := range c.subscribers {
+		select {
+		case ch <- snapshot:
+		default:
+		}
+	}
 }
