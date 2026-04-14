@@ -60,7 +60,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", sentryHandler.HandleFunc(handler.Health(checker)))
-	mux.HandleFunc("GET /health/stream", sentryHandler.HandleFunc(handler.HealthStream(checker)))
+	mux.HandleFunc("GET /health/stream", handler.HealthStream(checker))
 	mux.HandleFunc("GET /ready", sentryHandler.HandleFunc(handler.Ready))
 	mux.HandleFunc("GET /ready/to_panic/{magic_text}", sentryHandler.HandleFunc(handler.ToPanic))
 
